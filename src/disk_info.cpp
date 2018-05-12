@@ -2,6 +2,7 @@
 #include <exception>
 #include <fstream>
 #include <iostream>
+#include "log.h"
 
 int CommonInfo::parse(std::string &line)
 {
@@ -73,6 +74,7 @@ TrackInfo::TrackInfo(std::string &file, std::string &index,
 
 int DiscInfo::parse_file(const std::string &file_name)
 {
+    int line_cnt = 0;
     tracks.clear();
 
     std::ifstream in_file;
@@ -97,14 +99,15 @@ int DiscInfo::parse_file(const std::string &file_name)
         }
         if (std::getline(in_file, line))
         {
-            //std::cout << line << std::endl;
+            line_cnt++;
             try
             {
                 info->parse(line);
             }
             catch (std::exception &e)
             {
-                std::cerr << "Line parse fail: " << e.what() << std::endl;
+                log(LEVEL_ERROR, "DiskInfo", "Failed parse line %d for %s, Reason: %s",
+                        line_cnt, file_name.c_str(), e.what());
             }
         }
     }

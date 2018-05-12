@@ -3,6 +3,7 @@
 #include "disk_info.h"
 #include "FolderInfo.h"
 #include <iostream>
+#include "log.h"
 #include <sstream>
 #include <string>
 #include <sys/stat.h>
@@ -39,7 +40,7 @@ eFileType get_file_type(const std::string &path)
     struct stat sb;
     if (stat(path.c_str(), &sb) == -1)
     {
-        std::cout << "Stat Failed: " << path << std::endl;
+        log(LEVEL_ERROR, "Main", "Stat Failed: %s", path.c_str());
         return eFileType_None;
     }
     switch (sb.st_mode & S_IFMT)
@@ -271,7 +272,8 @@ int process_dir(const std::string &src_path, const std::string &dst_path)
         DiscInfo disc_info;
         std::string full_path = folder_info.root_path + "/" + *cue_index;
 
-        std::cout << "Processing " << full_path << std::endl;
+        //std::cout << "Processing " << full_path << std::endl;
+        log(LEVEL_INFO, "Main", "Processing: %s", full_path.c_str());
 
         disc_info.parse_file(full_path);
 
