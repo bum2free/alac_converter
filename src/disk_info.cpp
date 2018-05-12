@@ -112,5 +112,41 @@ int DiscInfo::parse_file(const std::string &file_name)
         }
     }
     in_file.close();
+    return process_time();
+}
+
+int DiscInfo::process_time(void)
+{
+    for (int i = 0; i < tracks.size(); i++)
+    {
+        TrackInfo *current_track = &tracks[i];
+        TrackInfo *next_track = i + 1 < tracks.size() ? &tracks[i + 1] : nullptr;
+        current_track->start_time =
+            parse_time_index(current_track->time_index[0]);
+        if (current_track->start_time < 0 || next_track == nullptr)
+            continue;
+        int next_start_time = parse_time_index(next_track->time_index[0]);
+        if (next_start_time < 0)
+            continue;
+        current_track->duration = next_start_time - current_track->start_time;
+    }
     return 0;
+}
+
+int DiscInfo::parse_time_index(const std::string &index)
+{
+    std::vector<std::string> tokens;
+    std::istringstream iss(index);
+    std::string subs;
+
+    while(getline(iss, subs, ':'))
+    {
+        tokens.push_back(subs);
+    }
+    if (tokens.size() < 3)
+    {
+        log(LEVEL_ERROR, "Err parse time index: %s", index.c_str());
+        return -EINVAL;
+    }
+    return stoi(tokens[0]) * 60 + stoi(tokens[1]);
 }

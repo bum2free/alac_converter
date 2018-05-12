@@ -87,6 +87,8 @@ void print_cd_info(DiscInfo *disk)
         {
             std::cout << "\rtime index: " << *j << std::endl;
         }
+        std::cout << "--start time: " << track.start_time << std::endl;
+        std::cout << "--duration: " << track.duration << std::endl;
     }
 }
 
@@ -207,7 +209,7 @@ int convert_cue_files(const std::string &dest_root,
     {
         return ret;
     }
-
+    //print_cd_info(&disk_info);
     for (int i = 0; i < disk_info.tracks.size(); i++)
     {
         TrackInfo *track_info = &disk_info.tracks[i];
