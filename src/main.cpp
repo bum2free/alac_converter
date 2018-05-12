@@ -4,6 +4,7 @@
 #include "FolderInfo.h"
 #include <iostream>
 #include "log.h"
+#include <regex>
 #include <sstream>
 #include <string>
 #include <sys/stat.h>
@@ -193,6 +194,75 @@ int make_clean_folder(std::string &path)
     return ret;
 }
 
+int convert_file(std::string &dst_file, std::string &src_file,
+        DiscInfo &disc_info, int index)
+{
+    TrackInfo *track_info = &disc_info.tracks[index];
+    if (track_info->start_time < 0)
+    {
+        return -EINVAL;
+    }
+    std::regex regex(" ");
+    src_file = std::regex_replace(src_file, regex, "\\ ");
+    dst_file = std::regex_replace(dst_file, regex, "\\ ");
+    //std::cout << "src: " << src_file << std::endl;
+    //std::cout << "dst: " << dst_file << std::endl;
+
+    /*
+     * metadata:
+     * - track titile
+     * - track performer
+     * - album
+     * - track
+     */
+    int length_metadata = track_info->title.size() +
+        track_info->performer.size() + track_info->title.size();
+    int length_filename = src_file.size() + dst_file.size();
+
+    char *meta_buf = nullptr;
+    char *cmd = nullptr;
+    int ret = 0;
+    try {
+        meta_buf = new char[length_metadata + 128];
+        cmd = new char[length_filename + 1024];
+
+        sprintf(meta_buf, "-metadata album=\"%s\" -metadata artist=\"%s\" "
+                "-metadata title=\"%s\" -metadata track=%d",
+                disc_info.title.c_str(),
+                track_info->performer.c_str(),
+                track_info->title.c_str(),
+                index);
+        if (track_info->duration > 0)
+        {
+            sprintf(cmd, "ffmpeg -ss %d -i %s -t %d %s -acodec alac %s",
+                    track_info->start_time,
+                    src_file.c_str(),
+                    track_info->duration,
+                    meta_buf,
+                    dst_file.c_str());
+        }
+        else
+        {
+            sprintf(cmd, "ffmpeg -ss %d -i %s %s -acodec alac %s",
+                    track_info->start_time,
+                    src_file.c_str(),
+                    meta_buf,
+                    dst_file.c_str());
+        }
+        std::cout << "cmd: " << cmd << std::endl;
+        system(cmd);
+    }
+    catch (std::exception &e)
+    {
+        ret = -ENOMEM;
+    }
+    if (meta_buf != nullptr)
+        delete[] meta_buf;
+    if (cmd != nullptr)
+        delete[] cmd;
+    return ret;
+}
+
 int convert_cue_files(const std::string &dest_root,
         DiscInfo &disk_info,
         FolderInfo &folder_info,
@@ -213,10 +283,12 @@ int convert_cue_files(const std::string &dest_root,
     for (int i = 0; i < disk_info.tracks.size(); i++)
     {
         TrackInfo *track_info = &disk_info.tracks[i];
-        //std::string media_file = folder_info.root_path + "/" + track_info->file;
-        std::string media_file = track_info->file;
-        //std::cout << media_file << std::endl;
+        std::string src_file = folder_info.root_path + "/" + track_info->file;
+        std::string dest_file = work_root + "/" + std::to_string(i + 1) + "_" + track_info->title + ".m4a";
+        //std::cout << "src: " << src_file << std::endl;
+        //std::cout << "dst: " << dest_file << std::endl;
         //TODO: Check file existen, and start convert
+        convert_file(dest_file, src_file, disk_info, i);
     }
 }
 
