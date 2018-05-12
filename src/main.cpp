@@ -200,7 +200,7 @@ int convert_cue_files(const std::string &dest_root,
         cue_file_name;
     int ret;
 
-    std::cout << "Preparing Folder: " << work_root << std::endl;
+    //std::cout << "Preparing Folder: " << work_root << std::endl;
     ret = make_clean_folder(work_root);
     if (ret != 0)
     {
@@ -212,7 +212,7 @@ int convert_cue_files(const std::string &dest_root,
         TrackInfo *track_info = &disk_info.tracks[i];
         //std::string media_file = folder_info.root_path + "/" + track_info->file;
         std::string media_file = track_info->file;
-        std::cout << media_file << std::endl;
+        //std::cout << media_file << std::endl;
         //TODO: Check file existen, and start convert
     }
 }

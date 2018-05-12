@@ -1,4 +1,5 @@
 #include "disk_info.h"
+#include <exception>
 #include <fstream>
 #include <iostream>
 
@@ -9,6 +10,7 @@ int CommonInfo::parse(std::string &line)
      */
     int start_index = line.find_first_not_of(" ");
     int end_index = line.find_last_not_of(" ");
+    //std::cout << line << std::endl;
     std::string line_2 = line.substr(start_index, end_index - start_index + 1);
     //std::cout << line_2 << std::endl;
 
@@ -96,7 +98,14 @@ int DiscInfo::parse_file(const std::string &file_name)
         if (std::getline(in_file, line))
         {
             //std::cout << line << std::endl;
-            info->parse(line);
+            try
+            {
+                info->parse(line);
+            }
+            catch (std::exception &e)
+            {
+                std::cerr << "Line parse fail: " << e.what() << std::endl;
+            }
         }
     }
     in_file.close();
