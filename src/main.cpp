@@ -179,7 +179,7 @@ int create_folder(const std::string &src_path)
     return 0;
 }
 
-int make_clean_folder(std::string &path)
+int make_clean_folder(const std::string &path)
 {
     struct stat sb;
     int ret = 0;
@@ -194,6 +194,31 @@ int make_clean_folder(std::string &path)
     return ret;
 }
 
+int convert_file(const std::string &dst_file, const std::string &src_file)
+{
+//    std::cout <<"src: " << src_file << std::endl;
+//    std::cout <<"dst: " << dst_file << std::endl;
+    int ret = 0;
+    int length_filename = src_file.size() + dst_file.size();
+
+    char *cmd = nullptr;
+    try {
+        cmd = new char[length_filename + 1024];
+
+        sprintf(cmd, "ffmpeg -i %s -acodec alac %s",
+                src_file.c_str(),
+                dst_file.c_str());
+        std::cout << "cmd: " << cmd << std::endl;
+        system(cmd);
+    }
+    catch (std::exception &e)
+    {
+        ret = -ENOMEM;
+    }
+    if (cmd != nullptr)
+        delete[] cmd;
+    return ret;
+}
 int convert_file(std::string &dst_file, std::string &src_file,
         DiscInfo &disc_info, int index)
 {
@@ -263,14 +288,11 @@ int convert_file(std::string &dst_file, std::string &src_file,
     return ret;
 }
 
-int convert_cue_files(const std::string &dest_root,
+int convert_cue_files(const std::string &work_root,
         DiscInfo &disk_info,
-        FolderInfo &folder_info,
-        const std::string &cue_file_name)
+        FolderInfo &folder_info)
 {
-    std::string work_root = dest_root + "/" +
-        folder_info.root_path + "/" +
-        cue_file_name;
+    std::set<std::string> files_used;
     int ret;
 
     //std::cout << "Preparing Folder: " << work_root << std::endl;
@@ -289,6 +311,16 @@ int convert_cue_files(const std::string &dest_root,
         //std::cout << "dst: " << dest_file << std::endl;
         //TODO: Check file existen, and start convert
         convert_file(dest_file, src_file, disk_info, i);
+        files_used.insert(track_info->file);
+    }
+    /*
+     * remove used files
+     * This is for processing individual media files which does not contained
+     * in the cue files
+     */
+    for (auto i = files_used.begin(); i!= files_used.end(); i++)
+    {
+        folder_info.filename_music.erase(*i);
     }
 }
 
@@ -297,6 +329,7 @@ int process_dir(const std::string &src_path, const std::string &dst_path)
     DIR *dir;
     struct dirent *ptr;
     FolderInfo folder_info(src_path);
+    int ret = 0;
 
     //std::cout << "Processing Folder: " << path << std::endl;
     dir = opendir(src_path.c_str());
@@ -335,6 +368,12 @@ int process_dir(const std::string &src_path, const std::string &dst_path)
         return 0;
     }
 
+    ret = make_clean_folder(dst_path + "/" + folder_info.root_path);
+    if (ret != 0)
+    {
+        return ret;
+    }
+
     /*
      * First Process Cue File.
      * The remain media files will be converted in whole
@@ -351,12 +390,21 @@ int process_dir(const std::string &src_path, const std::string &dst_path)
 
         disc_info.parse_file(full_path);
 
-        convert_cue_files(dst_path, disc_info, folder_info, (*cue_index).substr(
-                    0, (*cue_index).find_last_of('.')));
+        convert_cue_files(dst_path + "/" + folder_info.root_path + "/" +
+                (*cue_index).substr(0, (*cue_index).find_last_of('.')),
+                disc_info, folder_info);
     }
     /*
      * Process remaining Media Files
      */
+    for (auto i = folder_info.filename_music.begin(); i != folder_info.filename_music.end(); i++)
+    {
+        std::string src_file = folder_info.root_path + "/" + *i;
+        convert_file(dst_path + "/" + folder_info.root_path + "/" +
+                (*i).substr(0, (*i).find_last_of('.')) + ".m4a",
+                    src_file);
+
+    }
     return 0;
 }
 

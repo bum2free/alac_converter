@@ -1,7 +1,7 @@
 #ifndef __FOLDERINFO_H__
 #define __FOLDERINFO_H__
 #include <string>
-#include <vector>
+#include <set>
 
 class FolderInfo
 {
@@ -12,7 +12,7 @@ public:
     int process(void);
 
     std::string root_path;
-    std::vector<std::string> filename_cue;
-    std::vector<std::string> filename_music;
+    std::set<std::string> filename_cue;
+    std::set<std::string> filename_music;
 };
 #endif
