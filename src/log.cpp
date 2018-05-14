@@ -7,33 +7,35 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define FMT_BUF_SIZE    128
-#define LOG_BUF_SIZE    2048
+Logger::Logger(uint32_t max_length) : max_length(max_length)
+{
+    buffer = new char[max_length];
+    auto logger_ = spdlog::stdout_color_st("console");
+    logger_->set_level(spdlog::level::debug);
+    loggers.push_back(logger_);
+}
 
-static int log_show_level = LEVEL_DEBUG;
+Logger::Logger(uint32_t max_length, const std::string &error_file) : Logger(max_length)
+{
+    this->error_file = error_file;
+    auto logger_ = spdlog::basic_logger_st("Basic_logger", error_file);
+    logger_->set_level(spdlog::level::err);
+    loggers.push_back(logger_);
+}
 
-const char* LEVEL_PREFIX[LEVEL_ERROR + 1] = {"DETAIL", "DEBUG", "INFO", "WARN", "ERROR"};
-const char LEVEL_COLOR[LEVEL_ERROR + 1]   = {39, 39, 39, 33, 31};
+Logger::~Logger()
+{
+    if (buffer)
+        delete[] buffer;
+}
 
-static char n_fmt[FMT_BUF_SIZE];
-static char buffer[LOG_BUF_SIZE];
-
-void log(int level, const char* tag, const char* fmt, ...) {
-    if(level < log_show_level)
-        return;
-
-    time_t t;
-    time(&t);
-    struct tm* lt = localtime(&t); 
-
-    snprintf(n_fmt, FMT_BUF_SIZE, "\033[%02dm[%d-%02d-%02d %02d:%02d:%02d][%d] %s: [%s] %s\n\033[0m",
-            LEVEL_COLOR[level],
-            lt->tm_year + 1900, lt->tm_mon + 1, lt->tm_mday, (lt->tm_hour + 8) % 24, 
-            lt->tm_min, lt->tm_sec, getpid(), LEVEL_PREFIX[level], tag, fmt);
-
+void Logger::operator()(int level, const char* fmt, ...)
+{
     va_list argp;
     va_start(argp, fmt);
-    int cnt = vsnprintf(buffer, LOG_BUF_SIZE, n_fmt, argp);
-    write(1, buffer, cnt);
+    int cnt = vsnprintf(buffer, max_length, fmt, argp);
     va_end(argp);
+    for (auto i = loggers.begin(); i != loggers.end(); i++) {
+        (*i)->log((spdlog::level::level_enum)level, buffer);
+    }
 }

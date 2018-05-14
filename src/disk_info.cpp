@@ -4,6 +4,7 @@
 #include <iostream>
 #include "log.h"
 
+extern Logger logger;
 int CommonInfo::parse(std::string &line)
 {
     /*
@@ -82,7 +83,7 @@ int DiscInfo::parse_file(const std::string &file_name)
     in_file.open(file_name);
     if (in_file.is_open() == false)
     {
-        std::cerr << "Can not open: " << file_name << std::endl;
+        logger(LEVEL_ERROR, "Can not open: %s", file_name.c_str());
         return -EINVAL;
     }
     while(!in_file.eof())
@@ -106,7 +107,7 @@ int DiscInfo::parse_file(const std::string &file_name)
             }
             catch (std::exception &e)
             {
-                log(LEVEL_ERROR, "DiskInfo", "Failed parse line %d for %s, Reason: %s",
+                logger(LEVEL_ERROR, "Failed parse line %d for %s, Reason: %s",
                         line_cnt, file_name.c_str(), e.what());
             }
         }
@@ -145,7 +146,7 @@ int DiscInfo::parse_time_index(const std::string &index)
     }
     if (tokens.size() < 3)
     {
-        log(LEVEL_ERROR, "Err parse time index: %s", index.c_str());
+        logger(LEVEL_ERROR, "Err parse time index: %s", index.c_str());
         return -EINVAL;
     }
     return stoi(tokens[0]) * 60 + stoi(tokens[1]);

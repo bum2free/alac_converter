@@ -22,6 +22,8 @@ typedef enum
     eFileType_UnSupported,
 }eFileType;
 
+Logger logger(2048, "./error.log");
+
 int is_folder_exist(const std::string &path)
 {
     struct stat sb;
@@ -31,7 +33,7 @@ int is_folder_exist(const std::string &path)
         return 1;
     else
     {
-        std::cerr << "Not folder: " << path << std::endl;
+        logger(LEVEL_ERROR, "Not folder: %s", path.c_str());
         return -EINVAL;
     }
 }
@@ -41,7 +43,7 @@ eFileType get_file_type(const std::string &path)
     struct stat sb;
     if (stat(path.c_str(), &sb) == -1)
     {
-        log(LEVEL_ERROR, "Main", "Stat Failed: %s", path.c_str());
+        logger(LEVEL_ERROR, "Stat Failed: %s", path.c_str());
         return eFileType_None;
     }
     switch (sb.st_mode & S_IFMT)
@@ -116,7 +118,7 @@ int clean_folder(const std::string &src_path)
     dir = opendir(src_path.c_str());
     if (dir == nullptr)
     {
-        std::cout << "Dir open err: " << src_path << std::endl;
+        logger(LEVEL_ERROR, "Dir open err: %s", src_path.c_str());
         return -EINVAL;
     }
     while ((ptr = readdir(dir)) != nullptr)
@@ -138,7 +140,7 @@ int clean_folder(const std::string &src_path)
         }
         if (ret != 0)
         {
-            std::cerr << "Failed remove: " << filename << std::endl;
+            logger(LEVEL_ERROR, "Failed remove: %s", filename.c_str());
             break;
         }
     }
@@ -163,7 +165,7 @@ int create_folder(const std::string &src_path)
             continue;
         else if (ret < 0)
         {
-            std::cerr << "Invalid folder: " << path_ << std::endl;
+            logger(LEVEL_ERROR, "Invalid folder: %s", path_.c_str());
             return ret;
         }
         else
@@ -171,7 +173,7 @@ int create_folder(const std::string &src_path)
             ret = mkdir(path_.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
             if (ret != 0)
             {
-                std::cerr << "Failed create folder: " << path_ << std::endl;
+                logger(LEVEL_ERROR, "Failed create folder: %s", path_);
                 return ret;
             }
         }
@@ -208,7 +210,7 @@ int convert_file(const std::string &dst_file, const std::string &src_file)
         sprintf(cmd, "ffmpeg -i %s -acodec alac %s",
                 src_file.c_str(),
                 dst_file.c_str());
-        std::cout << "cmd: " << cmd << std::endl;
+        logger(LEVEL_INFO, "cmd: %s", cmd);
         system(cmd);
     }
     catch (std::exception &e)
@@ -274,7 +276,7 @@ int convert_file(std::string &dst_file, std::string &src_file,
                     meta_buf,
                     dst_file.c_str());
         }
-        std::cout << "cmd: " << cmd << std::endl;
+        logger(LEVEL_INFO, "cmd: %s", cmd);
         system(cmd);
     }
     catch (std::exception &e)
@@ -336,7 +338,7 @@ int process_dir(const std::string &src_path, const std::string &dst_path)
     dir = opendir(src_path.c_str());
     if (dir == nullptr)
     {
-        std::cout << "Dir open err: " << src_path << std::endl;
+        logger(LEVEL_ERROR, "Dir open err: %s", src_path.c_str());
         return -EINVAL;
     }
     while ((ptr = readdir(dir)) != nullptr)
@@ -387,7 +389,7 @@ int process_dir(const std::string &src_path, const std::string &dst_path)
         std::string full_path = folder_info.root_path + "/" + *cue_index;
 
         //std::cout << "Processing " << full_path << std::endl;
-        log(LEVEL_INFO, "Main", "Processing: %s", full_path.c_str());
+        logger(LEVEL_INFO, "Processing: %s", full_path.c_str());
 
         disc_info.parse_file(full_path);
 
@@ -414,7 +416,6 @@ int main(int argc, char *argv[])
     int c;
     std::string src_folder, dst_folder;
 
-
     while ((c = getopt(argc, argv, "s:d:")) != -1)
     {
         switch (c)
@@ -434,11 +435,13 @@ int main(int argc, char *argv[])
 
     if (src_folder.size() == 0 || dst_folder.size() == 0)
     {
-        std::cout << "Err: src or dest dir not set" << std::endl;
-        std::cout << "Usage: alac_convert -s <src_dir> -d <dst_dir>" << std::endl;
+        logger(LEVEL_ERROR, "src or dest dir not set");
+        logger(LEVEL_INFO, "Usage: alac_convert -s <src_dir> -d <dst_dir>");
         return -EINVAL;
     }
-    std::cout << "Src Folder: " << src_folder << std::endl;
+
+    logger(LEVEL_INFO, "Src Folder: %s", src_folder.c_str());
+    //std::cout << "Src Folder: " << src_folder << std::endl;
     std::cout << "Dst Folder: " << dst_folder << std::endl;
 
     //Test
