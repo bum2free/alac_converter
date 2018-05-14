@@ -306,7 +306,8 @@ int convert_cue_files(const std::string &work_root,
     {
         TrackInfo *track_info = &disk_info.tracks[i];
         std::string src_file = folder_info.root_path + "/" + track_info->file;
-        std::string dest_file = work_root + "/" + std::to_string(i + 1) + "_" + track_info->title + ".m4a";
+        std::string title = std::regex_replace(track_info->title, std::regex("/"), "-");
+        std::string dest_file = work_root + "/" + std::to_string(i + 1) + "_" + title + ".m4a";
         //std::cout << "src: " << src_file << std::endl;
         //std::cout << "dst: " << dest_file << std::endl;
         //TODO: Check file existen, and start convert
