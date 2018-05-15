@@ -229,9 +229,15 @@ int convert_file(std::string &dst_file, std::string &src_file,
     {
         return -EINVAL;
     }
-    std::regex regex(" ");
-    src_file = std::regex_replace(src_file, regex, "\\ ");
-    dst_file = std::regex_replace(dst_file, regex, "\\ ");
+    /*
+     * FIXME!
+     * It should have replace list, or
+     * will use lib-ffmpeg instead of currentshell command
+     */
+    src_file = std::regex_replace(src_file, std::regex(" "), "\\ ");
+    dst_file = std::regex_replace(dst_file, std::regex(" "), "\\ ");
+    dst_file = std::regex_replace(dst_file, std::regex("\\("), "\\(");
+    dst_file = std::regex_replace(dst_file, std::regex("\\)"), "\\)");
     //std::cout << "src: " << src_file << std::endl;
     //std::cout << "dst: " << dst_file << std::endl;
 
