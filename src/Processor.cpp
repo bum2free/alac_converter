@@ -15,6 +15,8 @@
 
 extern Logger logger;
 
+static const char *ffmpeg_log_level = "-loglevel error";
+
 Processor::Processor(const std::string &src_path, const std::string &dst_path) :
     src_path_(src_path), dst_path_(dst_path)
 {
@@ -254,7 +256,8 @@ int Processor::convert_file(const std::string &dst_file, const std::string &src_
     try {
         cmd = new char[length_filename + 1024];
 
-        sprintf(cmd, "ffmpeg -i %s -acodec alac %s",
+        sprintf(cmd, "ffmpeg %s -i %s -acodec alac %s",
+                ffmpeg_log_level,
                 src_file.c_str(),
                 dst_file.c_str());
         logger(LEVEL_INFO, "cmd: %s", cmd);
@@ -315,7 +318,8 @@ int Processor::convert_file(std::string &dst_file, std::string &src_file,
                 index);
         if (track_info->duration > 0)
         {
-            sprintf(cmd, "ffmpeg -ss %d -i %s -t %d %s -acodec alac %s",
+            sprintf(cmd, "ffmpeg %s -ss %d -i %s -t %d %s -acodec alac %s",
+                    ffmpeg_log_level,
                     track_info->start_time,
                     src_file.c_str(),
                     track_info->duration,
@@ -324,7 +328,8 @@ int Processor::convert_file(std::string &dst_file, std::string &src_file,
         }
         else
         {
-            sprintf(cmd, "ffmpeg -ss %d -i %s %s -acodec alac %s",
+            sprintf(cmd, "ffmpeg %s -ss %d -i %s %s -acodec alac %s",
+                    ffmpeg_log_level,
                     track_info->start_time,
                     src_file.c_str(),
                     meta_buf,
