@@ -25,5 +25,6 @@ private:
     int convert_cue_files(const std::string &work_root,
         DiscInfo &disk_info,
         FolderInfo &folder_info);
+    int exec_cmd(const char *name, std::vector<std::string> &args);
 };
 #endif

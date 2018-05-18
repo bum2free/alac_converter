@@ -10,12 +10,13 @@
 #include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <vector>
 #include <unistd.h>
 
 extern Logger logger;
 
-static const char *ffmpeg_log_level = "-loglevel error";
+static const char *ffmpeg_log_level = "error";
 
 Processor::Processor(const std::string &src_path, const std::string &dst_path) :
     src_path_(src_path), dst_path_(dst_path)
@@ -250,25 +251,25 @@ int Processor::convert_file(const std::string &dst_file, const std::string &src_
 //    std::cout <<"src: " << src_file << std::endl;
 //    std::cout <<"dst: " << dst_file << std::endl;
     int ret = 0;
-    int length_filename = src_file.size() + dst_file.size();
 
-    char *cmd = nullptr;
-    try {
-        cmd = new char[length_filename + 1024];
+    std::vector<std::string> cmd_args_;
+    cmd_args_.push_back("ffmpeg");
+    //set log level
+    cmd_args_.push_back("-loglevel");
+    cmd_args_.push_back(ffmpeg_log_level);
+    //set input file
+    cmd_args_.push_back("-i");
+    cmd_args_.push_back(src_file);
+    //set codec format
+    cmd_args_.push_back("-acodec");
+    cmd_args_.push_back("alac");
+    //set dst file
+    cmd_args_.push_back(dst_file);
+    logger(LEVEL_INFO, "Processing: %s", dst_file.c_str());
+    ret = exec_cmd("ffmpeg", cmd_args_);
+    if (ret)
+        logger(LEVEL_ERROR, "!Error");
 
-        sprintf(cmd, "ffmpeg %s -i %s -acodec alac %s",
-                ffmpeg_log_level,
-                src_file.c_str(),
-                dst_file.c_str());
-        logger(LEVEL_INFO, "cmd: %s", cmd);
-        system(cmd);
-    }
-    catch (std::exception &e)
-    {
-        ret = -ENOMEM;
-    }
-    if (cmd != nullptr)
-        delete[] cmd;
     return ret;
 }
 
@@ -276,76 +277,52 @@ int Processor::convert_file(std::string &dst_file, std::string &src_file,
         DiscInfo &disc_info, int index)
 {
     TrackInfo *track_info = &disc_info.tracks[index];
+    int ret = 0;
     if (track_info->start_time < 0)
     {
         return -EINVAL;
     }
-    /*
-     * FIXME!
-     * It should have replace list, or
-     * will use lib-ffmpeg instead of currentshell command
-     */
-    src_file = std::regex_replace(src_file, std::regex(" "), "\\ ");
-    dst_file = std::regex_replace(dst_file, std::regex(" "), "\\ ");
-    dst_file = std::regex_replace(dst_file, std::regex("\\("), "\\(");
-    dst_file = std::regex_replace(dst_file, std::regex("\\)"), "\\)");
     //std::cout << "src: " << src_file << std::endl;
     //std::cout << "dst: " << dst_file << std::endl;
 
-    /*
-     * metadata:
-     * - track titile
-     * - track performer
-     * - album
-     * - track
-     */
-    int length_metadata = track_info->title.size() +
-        track_info->performer.size() + track_info->title.size();
-    int length_filename = src_file.size() + dst_file.size();
-
-    char *meta_buf = nullptr;
-    char *cmd = nullptr;
-    int ret = 0;
-    try {
-        meta_buf = new char[length_metadata + 128];
-        cmd = new char[length_filename + 1024];
-
-        sprintf(meta_buf, "-metadata album=\"%s\" -metadata artist=\"%s\" "
-                "-metadata title=\"%s\" -metadata track=%d",
-                disc_info.title.c_str(),
-                track_info->performer.c_str(),
-                track_info->title.c_str(),
-                index);
-        if (track_info->duration > 0)
-        {
-            sprintf(cmd, "ffmpeg %s -ss %d -i %s -t %d %s -acodec alac %s",
-                    ffmpeg_log_level,
-                    track_info->start_time,
-                    src_file.c_str(),
-                    track_info->duration,
-                    meta_buf,
-                    dst_file.c_str());
-        }
-        else
-        {
-            sprintf(cmd, "ffmpeg %s -ss %d -i %s %s -acodec alac %s",
-                    ffmpeg_log_level,
-                    track_info->start_time,
-                    src_file.c_str(),
-                    meta_buf,
-                    dst_file.c_str());
-        }
-        logger(LEVEL_INFO, "cmd: %s", cmd);
-        system(cmd);
-    }
-    catch (std::exception &e)
+    std::vector<std::string> cmd_args_;
+    cmd_args_.push_back("ffmpeg");
+    //set log level
+    cmd_args_.push_back("-loglevel");
+    cmd_args_.push_back(ffmpeg_log_level);
+    //set start time
+    cmd_args_.push_back("-ss");
+    cmd_args_.push_back(std::to_string(track_info->start_time));
+    //set input file
+    cmd_args_.push_back("-i");
+    cmd_args_.push_back(src_file);
+    //set end time
+    if (track_info->duration > 0)
     {
-        ret = -ENOMEM;
+        cmd_args_.push_back("-t");
+        cmd_args_.push_back(std::to_string(track_info->duration));
     }
-    if (meta_buf != nullptr)
-        delete[] meta_buf;
-    if (cmd != nullptr)
-        delete[] cmd;
+    //set codec format
+    cmd_args_.push_back("-acodec");
+    cmd_args_.push_back("alac");
+    //set metadata
+    cmd_args_.push_back("-metadata");
+    //cmd_args_.push_back(std::string("album=\"") + disc_info.title + "\"");
+    cmd_args_.push_back(std::string("album=") + disc_info.title);
+    cmd_args_.push_back("-metadata");
+    cmd_args_.push_back(std::string("artist=") + track_info->performer);
+    cmd_args_.push_back("-metadata");
+    cmd_args_.push_back(std::string("title=") + track_info->title);
+    cmd_args_.push_back("-metadata");
+    cmd_args_.push_back(std::string("track=") + std::to_string(index + 1));
+
+    //set dst file
+    cmd_args_.push_back(dst_file);
+
+    logger(LEVEL_INFO, "Processing: %s", dst_file.c_str());
+    ret = exec_cmd("ffmpeg", cmd_args_);
+    if (ret)
+        logger(LEVEL_ERROR, "!Error");
     return ret;
 }
 
@@ -386,3 +363,68 @@ int Processor::convert_cue_files(const std::string &work_root,
     }
 }
 
+int Processor::exec_cmd(const char *name, std::vector<std::string> &cmd_args_)
+{
+	pid_t pid;
+    int ret = 0;
+
+    const char *cmd_args[cmd_args_.size() + 1];
+    //cmd_args = new const char*[cmd_args_.size() + 1];
+    for (int i = 0; i < cmd_args_.size(); i++)
+    {
+        cmd_args[i] = cmd_args_[i].c_str();
+    }
+    cmd_args[cmd_args_.size()] = NULL;
+
+	pid = fork();
+    if (pid == -1)
+        return -ENOMEM;
+
+    else if (pid != 0 )
+    {//parent
+		pid_t child_pid;
+		int stat_val;
+		/*
+		 * WIFEXITED(stat_val): Non-zero if the child is terminated
+		 * normally.
+		 *
+		 * WEXITSTATUS(stat_val): if WIFEXITED is non-zero, this
+		 * returns child exit code.
+		 *
+		 * WIFSIGNALED(stat_val): Non-zero if the child is terminated
+		 * on an uncaught signal.
+		 *
+		 * WTERMSIG(stat_val): if WIFSIGNALED is non-zero, this
+		 * returns a signal number.
+		 *
+		 * WIFSTOPPED(stat_val): Non-zero if the child has stopped.
+		 *
+		 * WSTOPSIG(stat_val): if WIFSTOPPED is non-zero, this returns
+		 * a signal number.
+		 */
+        child_pid = waitpid(pid, &stat_val, 0);
+        if (child_pid == -1) {
+            /*
+             * TBD: check ther errno.
+             *
+             * Could be:
+             * ECHILD: no child process;
+             * EINTR: interrupted by signal;
+             * EINVAL: invalid option argument
+             */
+        }
+		if (WIFEXITED(stat_val)) {
+			//printf("Child exited with code:%d\n", WEXITSTATUS(stat_val));
+        } else if(WIFSIGNALED(stat_val)) {
+			printf("Child interrupted by signal: %d\n", WTERMSIG(stat_val));
+            ret = -EINVAL;
+        } else {
+			printf("Child stopped unknown\n");
+            ret = -EINVAL;
+        }
+	} else {
+		/* This is the child */
+        return execvp(name, (char **)cmd_args);
+	}
+	return ret;
+}
