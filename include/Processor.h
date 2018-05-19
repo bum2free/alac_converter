@@ -26,5 +26,6 @@ private:
         DiscInfo &disk_info,
         FolderInfo &folder_info);
     int exec_cmd(const char *name, std::vector<std::string> &args);
+    int write_disc_id(const std::string &folder, const std::string &id);
 };
 #endif

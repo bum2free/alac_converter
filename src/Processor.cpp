@@ -1,7 +1,8 @@
 #include <dirent.h>
-#include <errno.h>
 #include "disk_info.h"
+#include <errno.h>
 #include "FolderInfo.h"
+#include <fstream>
 #include <iostream>
 #include "log.h"
 #include "Processor.h"
@@ -340,6 +341,11 @@ int Processor::convert_cue_files(const std::string &work_root,
         return ret;
     }
     //print_cd_info(&disk_info);
+    if (disk_info.disc_id.size() != 0)
+    {
+        write_disc_id(work_root, disk_info.disc_id);
+    }
+
     for (int i = 0; i < disk_info.tracks.size(); i++)
     {
         TrackInfo *track_info = &disk_info.tracks[i];
@@ -427,4 +433,18 @@ int Processor::exec_cmd(const char *name, std::vector<std::string> &cmd_args_)
         return execvp(name, (char **)cmd_args);
 	}
 	return ret;
+}
+
+int Processor::write_disc_id(const std::string &folder, const std::string &id)
+{
+    std::ofstream out_file;
+    out_file.open(folder + "/" + "disc_id.txt");
+
+    if (out_file.is_open() == false)
+        return -EINVAL;
+
+    logger(LEVEL_INFO, "Write disk_id: %s", id.c_str());
+    out_file << id;
+    out_file.close();
+    return 0;
 }

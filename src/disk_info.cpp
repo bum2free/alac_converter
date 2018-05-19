@@ -55,6 +55,16 @@ int CommonInfo::parse(std::string &line)
         TrackInfo *track_info = dynamic_cast<TrackInfo *>(this);
         track_info->time_index.push_back(tokens[1]);
     }
+    else if (key == "REM")
+    {
+        std::vector<std::string> tokens;
+        string_split(tokens, val_1, ' ');
+        if (tokens[0] == "DISCID")
+        {
+            disc_id = tokens[1];
+            //std::cout << "Disk ID:" << disc_id << std::endl;;
+        }
+    }
     return 0;
 }
 

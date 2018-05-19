@@ -14,6 +14,7 @@ public:
     std::string title;
     std::string performer;
     std::string file;
+    std::string disc_id;
 protected:
     std::vector<TrackInfo> *p_tracks;
 private:
