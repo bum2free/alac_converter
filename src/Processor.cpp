@@ -269,7 +269,7 @@ int Processor::convert_file(const std::string &dst_file, const std::string &src_
     logger(LEVEL_INFO, "Processing: %s", dst_file.c_str());
     ret = exec_cmd("ffmpeg", cmd_args_);
     if (ret)
-        logger(LEVEL_ERROR, "!Error");
+        logger(LEVEL_ERROR, "Error processing: %s", dst_file.c_str());
 
     return ret;
 }
@@ -323,7 +323,7 @@ int Processor::convert_file(std::string &dst_file, std::string &src_file,
     logger(LEVEL_INFO, "Processing: %s", dst_file.c_str());
     ret = exec_cmd("ffmpeg", cmd_args_);
     if (ret)
-        logger(LEVEL_ERROR, "!Error");
+        logger(LEVEL_ERROR, "Error processing: %s", dst_file.c_str());
     return ret;
 }
 
@@ -421,6 +421,7 @@ int Processor::exec_cmd(const char *name, std::vector<std::string> &cmd_args_)
         }
 		if (WIFEXITED(stat_val)) {
 			//printf("Child exited with code:%d\n", WEXITSTATUS(stat_val));
+            ret = WEXITSTATUS(stat_val);
         } else if(WIFSIGNALED(stat_val)) {
 			printf("Child interrupted by signal: %d\n", WTERMSIG(stat_val));
             ret = -EINVAL;

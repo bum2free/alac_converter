@@ -61,6 +61,7 @@ int main(int argc, char *argv[])
     //std::cout << "Src Folder: " << src_folder << std::endl;
     std::cout << "Dst Folder: " << dst_folder << std::endl;
 
+    logger.set_log_err_file(dst_folder + "/" + "error.log");
     //Test
     Processor processor(src_folder, dst_folder);
     processor.process();

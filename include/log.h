@@ -18,6 +18,7 @@ class Logger
 public:
     Logger(uint32_t max_length);
     Logger(uint32_t max_length, const std::string &error_file);
+    int set_log_err_file(const std::string &error_file);
     void operator()(int level, const char* fmt, ...);
     ~Logger();
 private:

@@ -23,6 +23,15 @@ Logger::Logger(uint32_t max_length, const std::string &error_file) : Logger(max_
     loggers.push_back(logger_);
 }
 
+int Logger::set_log_err_file(const std::string &error_file)
+{
+    auto logger_ = spdlog::basic_logger_st("Basic_logger", error_file);
+    logger_->set_level(spdlog::level::err);
+    loggers.push_back(logger_);
+
+    return 0;
+}
+
 Logger::~Logger()
 {
     if (buffer)
